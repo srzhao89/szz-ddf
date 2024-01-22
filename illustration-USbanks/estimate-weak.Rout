@@ -1,0 +1,198 @@
+WARNING: unknown option '--no-restore-'
+
+
+R version 4.3.1 (2023-06-16) -- "Beagle Scouts"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin20 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> ###########################################################################################
+> ## Title: Central Limit Theorems for Aggregates of Directional Distance Functions
+> ## Authors: Leopold Simar, Valentin Zelenyuk, and Shirong Zhao
+> ## Date: January 22, 2024
+> ## The programming codes used in this paper involve some earlier codes from Paul Wilson
+> ## All rights reserved. 
+> ## It is free for academic use only with adequate citation and acknowledgments.
+> ## For any other use, contact the authors.
+> ##############
+> ## The following codes will report the results for the empirical illustration
+> ## Here we use VRS-DEA method, and the dimension is 3 after the dimension reduction
+> ###########################################################################################
+> 
+> source("./Functions/coverage.ddf.kuosmanen.illu.R")
+> source("./Functions/dea.direc.kuosmanen.R")
+Loading required package: Rglpk
+Loading required package: slam
+Using the GLPK callable library version 5.0
+> source("./Functions/eig.analysis.R")
+> 
+> if (exists(".Random.seed")) {
++   save.seed=.Random.seed
++   flag.seed=TRUE
++ } else {
++   flag.seed=FALSE
++ }
+> set.seed(900001)
+> ######################################################
+> df<- read.delim("./Data/mkt2015-data.txt")
+> ######################################################
+> for (ii in 2001:2010) {
++   jj=length(which(df$year==ii))
++   cat(ii,":",jj,"\n")
++ }
+2001 : 274 
+2002 : 277 
+2003 : 275 
+2004 : 277 
+2005 : 263 
+2006 : 245 
+2007 : 232 
+2008 : 191 
+2009 : 184 
+2010 : 179 
+> 
+> index=df$index
+> year=df$year
+> 
+> y1=df$y1
+> y2=df$y2
+> y3=df$y3
+> y4=df$y4
+> y5=df$y5
+> 
+> x1=df$x1
+> x2=df$x2
+> x3=df$x3
+> x4=df$x4
+> x5=df$x5
+> 
+> b=df$b
+> 
+> w1=df$w1
+> w2=df$w2
+> w3=df$w3
+> w4=df$w4
+> w5=df$w5
+> 
+> ## combining y1, y2 and y3
+> g.all=cbind(y1+y2+y3,y4,y5)
+> 
+> ## combining x4 and x5
+> x45=x4+x5
+> # the price for x45 is the average price
+> w45=(w4*x4+w5*x5)/(x4+x5)
+> x.p=cbind(x1,x2,x3,x45)
+> wx.p=cbind(w1,w2,w3,w45)
+> 
+> b.all=matrix(b,ncol=1)
+> 
+> #
+> res=matrix(0,nrow=10,ncol=8)
+> 
+> for (i in 2001:2010) {
++   
++   cat(i,"\n")
++   ii=which(year==i)
++   
++   if (length(ii)>0){
++     
++     index.i=index[ii]
++     
++     g=g.all[ii,]
++     # applying dimension reduction method in Wilson (2018, EJOR)
++     eigg=eig.analysis(g)
++     g.agg=g %*% eigg$v1
++ 
++     x=x.p[ii,]
++     wx=wx.p[ii,]
++     eigx=eig.analysis(x)
++     x.agg=x %*% eigx$v1
++     # computing the cost for the aggregated input x.agg
++     cost=(wx*x) %*% eigx$v1
++     
++     b=matrix(b.all[ii,],ncol=1)
++     
++     # computing H2 where we assume the price for b is -1.
++     H2=apply(cost,1,sum)+apply(b,1,sum)
++     H2=as.vector(H2)
++     
++     cat("Percent of Information:", eigg$pct, eigx$pct, "\n")
++     
++   } 
++   #
++   XDIREC=x.agg
++   GDIREC=matrix(0,nrow=nrow(g.agg),ncol=ncol(g.agg))
++   BDIREC=b
++   #
++   tt=coverage.ddf.kuosmanen.illu(x=x.agg,g=g.agg,b=b,XDIREC=XDIREC,GDIREC=GDIREC,BDIREC=BDIREC,H2=H2,L=100)
++   # 
++   res[i-2000,1:3]=tt$estimate
++   res[i-2000,4]=tt$sig
++   res[i-2000,5:6]=tt$bounds0[2,]
++   res[i-2000,7:8]=tt$bounds1[2,]
++ }
+2001 
+Percent of Information: 92.92446 95.98113 
+2002 
+Percent of Information: 90.04331 94.41187 
+2003 
+Percent of Information: 91.73506 94.37136 
+2004 
+Percent of Information: 91.52968 94.63444 
+2005 
+Percent of Information: 93.79367 95.38057 
+2006 
+Percent of Information: 94.58249 95.27219 
+2007 
+Percent of Information: 91.69005 96.0466 
+2008 
+Percent of Information: 91.65836 96.43138 
+2009 
+Percent of Information: 93.2309 95.79688 
+2010 
+Percent of Information: 93.15228 95.05706 
+> 
+> round(res,3)
+       [,1]   [,2]  [,3]  [,4]  [,5]  [,6]  [,7]  [,8]
+ [1,] 0.071 -0.051 0.121 0.255 0.040 0.101 0.091 0.152
+ [2,] 0.057 -0.038 0.095 0.231 0.030 0.085 0.068 0.123
+ [3,] 0.067 -0.043 0.110 0.259 0.036 0.098 0.080 0.141
+ [4,] 0.056 -0.031 0.087 0.235 0.028 0.083 0.059 0.114
+ [5,] 0.056 -0.035 0.091 0.236 0.027 0.084 0.062 0.119
+ [6,] 0.053 -0.039 0.092 0.222 0.026 0.081 0.064 0.120
+ [7,] 0.049 -0.039 0.088 0.210 0.022 0.076 0.061 0.115
+ [8,] 0.034 -0.024 0.057 0.153 0.012 0.055 0.036 0.079
+ [9,] 0.029 -0.017 0.046 0.130 0.010 0.048 0.027 0.065
+[10,] 0.043 -0.032 0.075 0.200 0.013 0.072 0.045 0.104
+> 
+> ### construct the Table ###
+> year=2001:2010
+> tex=formatC(year,width=7,digits=0,format="f")
+> 
+> for (k in 1:ncol(res)) {
++   tex = paste(tex,"&",formatC(res[,k],width=7,digits = 4,format = "f"))
++ }
+> tex = paste(tex,"\\\\")
+> write(tex,file="./Output/coverage-weak.tex")
+> 
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+477.491   2.427 496.381 
